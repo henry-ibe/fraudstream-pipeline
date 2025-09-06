@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: retrain
+  namespace: fraud
+spec:
+  schedule: "0 3 * * *"          # nightly at 03:00 UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: retrain
+            image: python:3.11-slim
+            envFrom:
+            - configMapRef:
+                name: app-config
+            command:
+            - bash
+            - -c
+            - |
+              set -euo pipefail
+              pip install --no-cache-dir boto3 pandas scikit-learn psycopg2-binary pyarrow
+              python /job/retrain.py
+            volumeMounts:
+            - name: job-script
+              mountPath: /job
+          volumes:
+          - name: job-script
+            configMap:
+              name: retrain-script
+

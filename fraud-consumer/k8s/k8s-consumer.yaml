@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-consumer
+  namespace: fraud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fraud-consumer
+  template:
+    metadata:
+      labels:
+        app: fraud-consumer
+    spec:
+      imagePullSecrets:
+      - name: ecr-pull
+      containers:
+      - name: app
+        image: 782781395980.dkr.ecr.us-east-1.amazonaws.com/fraud-consumer:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - secretRef:
+            name: db-conn
+        - configMapRef:
+            name: app-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fraud-api
+  namespace: fraud
+spec:
+  type: NodePort
+  selector:
+    app: fraud-consumer
+  ports:
+  - port: 80
+    targetPort: 8080
